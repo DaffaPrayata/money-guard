@@ -1,14 +1,7 @@
-import React, { useState } from 'react'
-import {
-  Modal,
-  View,
-  Text,
-  TouchableOpacity,
-  TextInput,
-  ScrollView,
-  StyleSheet,
-} from 'react-native'
-import { X, Delete } from 'lucide-react-native'
+'use client'
+
+import { useState } from 'react'
+import { X, Delete } from 'lucide-react'
 import { expenseCategories, incomeCategories, finance, formatRupiah } from '@/lib/money-data'
 
 export interface TransactionFormData {
@@ -75,362 +68,142 @@ export function TransactionForm({ isOpen, onClose, onSubmit, initialDate }: Tran
     setAccount('cash')
   }
 
+  if (!isOpen) return null
+
   const canSubmit = Number.parseFloat(amount) > 0 && !!category
 
   return (
-    <Modal
-      visible={isOpen}
-      transparent
-      animationType="slide"
-      onRequestClose={onClose}
-    >
-      <View style={styles.overlay}>
-        <View style={styles.container}>
-          {/* Header */}
-          <View style={styles.header}>
-            <TouchableOpacity onPress={onClose} accessibilityLabel="Close">
-              <X size={20} color="#737373" />
-            </TouchableOpacity>
-            <Text style={styles.headerTitle}>New transaction</Text>
-            <View style={{ width: 20 }} />
-          </View>
+    <div className="fixed inset-0 z-[60] bg-black/50 flex items-end justify-center">
+      <div className="w-full max-w-[480px] max-h-[92vh] bg-white dark:bg-[#1a1a1a] rounded-t-2xl border-t border-[#e5e5e5] dark:border-[#0d2b4a] flex flex-col overflow-hidden">
+        {/* Header */}
+        <div className="flex items-center justify-between px-4 py-3 border-b border-[#e5e5e5] dark:border-[#0d2b4a]">
+          <button onClick={onClose} aria-label="Close" className="text-[#737373] dark:text-[#999999]">
+            <X size={20} />
+          </button>
+          <h2 className="text-base font-semibold text-[#1a1a1a] dark:text-[#f5f5f5]">New transaction</h2>
+          <div className="w-5" />
+        </div>
 
-          <ScrollView contentContainerStyle={styles.scrollContent}>
-            {/* Type segmented control */}
-            <View style={styles.typeContainer}>
-              <TouchableOpacity
-                onPress={() => {
-                  setType('expense')
-                  setCategory('')
-                }}
-                style={[
-                  styles.typeButton,
-                  type === 'expense' && styles.expenseActive,
-                ]}
-              >
-                <Text
-                  style={[
-                    styles.typeText,
-                    type === 'expense' && styles.activeTypeText,
-                  ]}
-                >
-                  Expense
-                </Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                onPress={() => {
-                  setType('income')
-                  setCategory('')
-                }}
-                style={[
-                  styles.typeButton,
-                  type === 'income' && styles.incomeActive,
-                ]}
-              >
-                <Text
-                  style={[
-                    styles.typeText,
-                    type === 'income' && styles.activeTypeText,
-                  ]}
-                >
-                  Income
-                </Text>
-              </TouchableOpacity>
-            </View>
-
-            {/* Account selector */}
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.accountScroll}>
-              <View style={styles.rowGap}>
-                {ACCOUNTS.map((acc) => (
-                  <TouchableOpacity
-                    key={acc.id}
-                    onPress={() => setAccount(acc.id)}
-                    style={[
-                      styles.accountCard,
-                      account === acc.id ? styles.accountActive : styles.accountInactive,
-                    ]}
-                  >
-                    <Text
-                      style={[
-                        styles.accountLabel,
-                        { color: account === acc.id ? '#ffffff' : '#737373' },
-                      ]}
-                    >
-                      {acc.label}
-                    </Text>
-                    <Text
-                      style={[
-                        styles.accountBalance,
-                        { color: account === acc.id ? '#ffffff' : '#1a1a1a' },
-                      ]}
-                    >
-                      {formatRupiah(acc.balance)}
-                    </Text>
-                  </TouchableOpacity>
-                ))}
-              </View>
-            </ScrollView>
-
-            {/* Amount display */}
-            <View style={styles.amountContainer}>
-              <Text
-                style={[
-                  styles.amountText,
-                  { color: type === 'income' ? '#10b981' : '#ef4444' },
-                ]}
-              >
-                {formatRupiah(Number.parseFloat(amount) || 0)}
-              </Text>
-            </View>
-
-            {/* Note */}
-            <TextInput
-              value={name}
-              onChangeText={setName}
-              placeholder={type === 'income' ? 'Add note (e.g. Salary)' : 'Add note (e.g. Groceries)'}
-              placeholderTextColor="#737373"
-              style={styles.inputNote}
-            />
-
-            {/* Category chips */}
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.categoryScroll}>
-              <View style={styles.rowGap}>
-                {categories.map((cat) => {
-                  const isSelected = category === cat.name
-                  return (
-                    <TouchableOpacity
-                      key={cat.name}
-                      onPress={() => setCategory(cat.name)}
-                      style={[
-                        styles.categoryChip,
-                        isSelected ? styles.categoryActive : styles.categoryInactive,
-                      ]}
-                    >
-                      <View
-                        style={[
-                          styles.categoryIconCircle,
-                          {
-                            backgroundColor: isSelected
-                              ? 'rgba(255,255,255,0.2)'
-                              : (cat.color ?? '#1e3a5f'),
-                          },
-                        ]}
-                      >
-                        <Text style={styles.categoryIconText}>{cat.icon}</Text>
-                      </View>
-                      <Text
-                        style={[
-                          styles.categoryName,
-                          { color: isSelected ? '#ffffff' : '#1a1a1a' },
-                        ]}
-                      >
-                        {cat.name}
-                      </Text>
-                    </TouchableOpacity>
-                  )
-                })}
-              </View>
-            </ScrollView>
-
-            {/* Numeric keypad */}
-            <View style={styles.keypadGrid}>
-              {KEYPAD_KEYS.map((key) => (
-                <TouchableOpacity
-                  key={key}
-                  onPress={() => pressKey(key)}
-                  style={styles.keypadButton}
-                >
-                  {key === 'back' ? (
-                    <Delete size={18} color="#1a1a1a" />
-                  ) : (
-                    <Text style={styles.keypadText}>{key}</Text>
-                  )}
-                </TouchableOpacity>
-              ))}
-            </View>
-
-            {/* Submit */}
-            <TouchableOpacity
-              onPress={handleSubmit}
-              disabled={!canSubmit}
-              style={[styles.submitButton, !canSubmit && styles.submitDisabled]}
+        <div className="overflow-y-auto px-4 py-4 flex flex-col gap-4">
+          {/* Type segmented control */}
+          <div className="flex gap-2 bg-[#f5f5f5] dark:bg-[#0d2b4a] rounded-full p-1">
+            <button
+              type="button"
+              onClick={() => {
+                setType('expense')
+                setCategory('')
+              }}
+              className={`flex-1 py-2 rounded-full text-sm font-medium transition-colors ${
+                type === 'expense'
+                  ? 'bg-[#ef4444] text-white'
+                  : 'text-[#737373] dark:text-[#999999]'
+              }`}
             >
-              <Text style={styles.submitText}>Add Transaction</Text>
-            </TouchableOpacity>
-          </ScrollView>
-        </View>
-      </View>
-    </Modal>
+              Expense
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setType('income')
+                setCategory('')
+              }}
+              className={`flex-1 py-2 rounded-full text-sm font-medium transition-colors ${
+                type === 'income'
+                  ? 'bg-[#10b981] text-white'
+                  : 'text-[#737373] dark:text-[#999999]'
+              }`}
+            >
+              Income
+            </button>
+          </div>
+
+          {/* Account selector */}
+          <div className="flex gap-2 overflow-x-auto">
+            {ACCOUNTS.map((acc) => (
+              <button
+                key={acc.id}
+                type="button"
+                onClick={() => setAccount(acc.id)}
+                className={`shrink-0 rounded-lg px-3 py-2 text-left transition-colors ${
+                  account === acc.id
+                    ? 'bg-[#1e3a5f] text-white'
+                    : 'bg-[#f5f5f5] dark:bg-[#0d2b4a] text-[#1a1a1a] dark:text-[#f5f5f5]'
+                }`}
+              >
+                <div className="text-xs opacity-80">{acc.label}</div>
+                <div className="text-sm font-semibold">{formatRupiah(acc.balance)}</div>
+              </button>
+            ))}
+          </div>
+
+          {/* Amount display */}
+          <div className="text-center py-4">
+            <p
+              className={`text-[40px] font-bold leading-tight ${
+                type === 'income' ? 'text-[#10b981]' : 'text-[#ef4444]'
+              }`}
+            >
+              {formatRupiah(Number.parseFloat(amount) || 0)}
+            </p>
+          </div>
+
+          {/* Note */}
+          <input
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            placeholder={type === 'income' ? 'Add note (e.g. Salary)' : 'Add note (e.g. Groceries)'}
+            className="w-full text-center text-sm border-b border-[#e5e5e5] dark:border-[#0d2b4a] pb-2 outline-none bg-transparent text-[#1a1a1a] dark:text-[#f5f5f5] placeholder-[#737373] dark:placeholder-[#999999] focus:border-[#1e3a5f]"
+          />
+
+          {/* Category chips */}
+          <div className="flex gap-2 overflow-x-auto pb-1">
+            {categories.map((cat) => (
+              <button
+                key={cat.name}
+                type="button"
+                onClick={() => setCategory(cat.name)}
+                className={`shrink-0 flex items-center gap-2 rounded-full pl-1.5 pr-3 py-1.5 text-sm font-medium transition-colors ${
+                  category === cat.name
+                    ? 'bg-[#1e3a5f] text-white'
+                    : 'bg-[#f5f5f5] dark:bg-[#0d2b4a] text-[#1a1a1a] dark:text-[#f5f5f5]'
+                }`}
+              >
+                <span
+                  className="w-6 h-6 rounded-full flex items-center justify-center text-xs"
+                  style={{ backgroundColor: category === cat.name ? 'rgba(255,255,255,0.2)' : (cat.color ?? '#1e3a5f') }}
+                >
+                  {cat.icon}
+                </span>
+                {cat.name}
+              </button>
+            ))}
+          </div>
+
+          {/* Numeric keypad */}
+          <div className="grid grid-cols-3 gap-2 mt-1">
+            {KEYPAD_KEYS.map((key) => (
+              <button
+                key={key}
+                type="button"
+                onClick={() => pressKey(key)}
+                className="h-12 rounded-lg bg-[#f5f5f5] dark:bg-[#0d2b4a] text-[#1a1a1a] dark:text-[#f5f5f5] text-lg font-medium flex items-center justify-center hover:opacity-80 transition-opacity"
+              >
+                {key === 'back' ? <Delete size={18} /> : key}
+              </button>
+            ))}
+          </div>
+
+          {/* Submit */}
+          <button
+            type="button"
+            onClick={handleSubmit}
+            disabled={!canSubmit}
+            className="w-full py-3 rounded-lg bg-[#1e3a5f] text-white font-medium disabled:opacity-40 disabled:cursor-not-allowed hover:opacity-90 transition-opacity"
+          >
+            Add Transaction
+          </button>
+        </div>
+      </div>
+    </div>
   )
 }
-
-const styles = StyleSheet.create({
-  overlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.5)',
-    justifyContent: 'flex-end',
-  },
-  container: {
-    maxHeight: '92%',
-    backgroundColor: '#ffffff',
-    borderTopLeftRadius: 16,
-    borderTopRightRadius: 16,
-    borderTopWidth: 1,
-    borderTopColor: '#e5e5e5',
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: '#e5e5e5',
-  },
-  headerTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#1a1a1a',
-  },
-  scrollContent: {
-    padding: 16,
-    gap: 16,
-  },
-  typeContainer: {
-    flexDirection: 'row',
-    gap: 8,
-    backgroundColor: '#f5f5f5',
-    borderRadius: 9999,
-    padding: 4,
-  },
-  typeButton: {
-    flex: 1,
-    paddingVertical: 8,
-    borderRadius: 9999,
-    alignItems: 'center',
-  },
-  expenseActive: {
-    backgroundColor: '#ef4444',
-  },
-  incomeActive: {
-    backgroundColor: '#10b981',
-  },
-  typeText: {
-    fontSize: 14,
-    fontWeight: '500',
-    color: '#737373',
-  },
-  activeTypeText: {
-    color: '#ffffff',
-  },
-  accountScroll: {
-    flexDirection: 'row',
-  },
-  rowGap: {
-    flexDirection: 'row',
-    gap: 8,
-  },
-  accountCard: {
-    borderRadius: 8,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    minWidth: 120,
-  },
-  accountActive: {
-    backgroundColor: '#1e3a5f',
-  },
-  accountInactive: {
-    backgroundColor: '#f5f5f5',
-  },
-  accountLabel: {
-    fontSize: 12,
-    opacity: 0.8,
-  },
-  accountBalance: {
-    fontSize: 14,
-    fontWeight: '600',
-  },
-  amountContainer: {
-    alignItems: 'center',
-    paddingVertical: 16,
-  },
-  amountText: {
-    fontSize: 40,
-    fontWeight: 'bold',
-  },
-  inputNote: {
-    textAlign: 'center',
-    fontSize: 14,
-    borderBottomWidth: 1,
-    borderBottomColor: '#e5e5e5',
-    paddingBottom: 8,
-    color: '#1a1a1a',
-  },
-  categoryScroll: {
-    flexDirection: 'row',
-  },
-  categoryChip: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    borderRadius: 9999,
-    paddingLeft: 6,
-    paddingRight: 12,
-    paddingVertical: 6,
-  },
-  categoryActive: {
-    backgroundColor: '#1e3a5f',
-  },
-  categoryInactive: {
-    backgroundColor: '#f5f5f5',
-  },
-  categoryIconCircle: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  categoryIconText: {
-    fontSize: 12,
-  },
-  categoryName: {
-    fontSize: 14,
-    fontWeight: '500',
-  },
-  keypadGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
-    justifyContent: 'space-between',
-    marginTop: 4,
-  },
-  keypadButton: {
-    width: '31%',
-    height: 48,
-    borderRadius: 8,
-    backgroundColor: '#f5f5f5',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  keypadText: {
-    fontSize: 18,
-    fontWeight: '500',
-    color: '#1a1a1a',
-  },
-  submitButton: {
-    width: '100%',
-    paddingVertical: 12,
-    borderRadius: 8,
-    backgroundColor: '#1e3a5f',
-    alignItems: 'center',
-  },
-  submitDisabled: {
-    opacity: 0.4,
-  },
-  submitText: {
-    color: '#ffffff',
-    fontWeight: '500',
-    fontSize: 16,
-  },
-})

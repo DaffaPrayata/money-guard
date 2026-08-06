@@ -1,31 +1,29 @@
-import React, { useState } from "react";
-import {
-  StyleSheet,
-  Text,
-  View,
-  ScrollView,
-  TouchableOpacity,
-  SafeAreaView,
-} from "react-native";
-import { Settings, Plus } from "lucide-react-native";
+'use client'
 
-// Import komponen & lib lokal kamu (sesuaikan relative path jika berbeda)
-import { BottomNav } from "../../components/money/bottom-nav";
-import { TransactionForm, TransactionFormData } from "../../components/money/transaction-form";
+import { useEffect, useState } from "react"
+import Link from "next/link"
+import { Settings, Plus } from "lucide-react"
+import { BottomNav } from "@/components/money/bottom-nav"
+import { TransactionForm, type TransactionFormData } from "@/components/money/transaction-form"
 import {
   finance,
   formatRupiah,
   expenseBreakdown,
   MONTH_LABEL,
-} from "../../lib/money-data";
+} from "@/lib/money-data"
+import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts"
 
 export default function DashboardPage() {
-  const [isTransactionFormOpen, setIsTransactionFormOpen] = useState(false);
+  const [isTransactionFormOpen, setIsTransactionFormOpen] = useState(false)
+
+  useEffect(() => {
+    window.scrollTo(0, 0)
+  }, [])
 
   const handleAddTransaction = (data: TransactionFormData) => {
-    console.log("New transaction:", data);
-    setIsTransactionFormOpen(false);
-  };
+    console.log("[v0] New transaction:", data)
+    setIsTransactionFormOpen(false)
+  }
 
   const monthlyData = [
     { month: "Jan", income: 4_500_000, expense: 1_200_000 },
@@ -33,288 +31,139 @@ export default function DashboardPage() {
     { month: "Mar", income: 4_800_000, expense: 1_300_000 },
     { month: "Apr", income: 5_000_000, expense: 1_500_000 },
     { month: "May", income: 5_000_000, expense: finance.currentExpense },
-  ];
-
-  const maxMonthlyVal = 6_000_000;
+  ]
 
   return (
-    <SafeAreaView style={styles.safeArea}>
-      <ScrollView contentContainerStyle={styles.scrollContent}>
-        {/* Header */}
-        <View style={styles.header}>
-          <Text style={styles.headerTitle}>Home</Text>
-          <TouchableOpacity 
-            style={styles.iconButton}
-            onPress={() => console.log("Pergi ke Profile")}
-          >
-            <Settings size={20} color="#1a1a1a" />
-          </TouchableOpacity>
-        </View>
+    <main className="max-w-[480px] mx-auto bg-white dark:bg-[#1a1a1a] min-h-dvh pb-32 transition-colors">
+      {/* Header */}
+      <header className="flex items-center justify-between border-b border-[#e5e5e5] dark:border-[#0d2b4a] p-4 bg-white dark:bg-[#1a1a1a]">
+        <h1 className="text-lg font-semibold text-[#1a1a1a] dark:text-[#f5f5f5]">Home</h1>
+        <Link href="/profile" aria-label="Settings">
+          <Settings size={20} className="text-[#1a1a1a] dark:text-[#f5f5f5]" />
+        </Link>
+      </header>
 
-        {/* Total balance */}
-        <View style={styles.section}>
-          <Text style={styles.subText}>Total balance</Text>
-          <Text style={styles.balanceText}>
-            {formatRupiah(finance.totalBalance)}
-          </Text>
-          <Text style={styles.dateLabel}>{MONTH_LABEL}</Text>
-        </View>
+      {/* Total balance */}
+      <section className="border-b border-[#e5e5e5] dark:border-[#0d2b4a] p-4 bg-white dark:bg-[#1a1a1a]">
+        <p className="text-xs text-[#737373] dark:text-[#999999]">Total balance</p>
+        <p className="text-[40px] font-bold leading-tight text-[#1a1a1a] dark:text-[#f5f5f5]">{formatRupiah(finance.totalBalance)}</p>
+        <p className="text-xs text-[#737373] dark:text-[#999999] mt-2">{MONTH_LABEL}</p>
+      </section>
 
-        {/* Accounts */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Accounts</Text>
-          <View style={styles.gridTwo}>
-            <View style={styles.card}>
-              <Text style={styles.subText}>Cash</Text>
-              <Text style={styles.cardAmount}>Rp 500.000</Text>
-            </View>
-            <View style={styles.card}>
-              <Text style={styles.subText}>Bank account</Text>
-              <Text style={styles.cardAmount}>Rp 2.000.000</Text>
-            </View>
-          </View>
-        </View>
+      {/* Accounts */}
+      <section className="border-b border-[#e5e5e5] dark:border-[#0d2b4a] p-4 bg-white dark:bg-[#1a1a1a]">
+        <h2 className="text-sm font-medium text-[#1a1a1a] dark:text-[#f5f5f5] mb-3">Accounts</h2>
+        <div className="grid grid-cols-2 gap-3">
+          <div className="bg-[#f5f5f5] dark:bg-[#0d2b4a] rounded-lg p-3">
+            <p className="text-xs text-[#737373] dark:text-[#999999]">Cash</p>
+            <p className="text-lg font-semibold text-[#1a1a1a] dark:text-[#f5f5f5]">Rp 500.000</p>
+          </div>
+          <div className="bg-[#f5f5f5] dark:bg-[#0d2b4a] rounded-lg p-3">
+            <p className="text-xs text-[#737373] dark:text-[#999999]">Bank account</p>
+            <p className="text-lg font-semibold text-[#1a1a1a] dark:text-[#f5f5f5]">Rp 2.000.000</p>
+          </div>
+        </div>
+      </section>
 
-        {/* Cash flow */}
-        <View style={styles.section}>
-          <View style={styles.rowBetween}>
-            <Text style={styles.sectionTitle}>Cash flow</Text>
-            <Text style={styles.subText}>{MONTH_LABEL}</Text>
-          </View>
-          <View style={styles.gridThree}>
-            <View>
-              <Text style={styles.subText}>Income</Text>
-              <Text style={[styles.flowText, { color: "#10b981" }]}>
-                {formatRupiah(finance.income)}
-              </Text>
-            </View>
-            <View>
-              <Text style={styles.subText}>Expenses</Text>
-              <Text style={[styles.flowText, { color: "#ef4444" }]}>
-                {formatRupiah(finance.currentExpense)}
-              </Text>
-            </View>
-            <View>
-              <Text style={styles.subText}>Total</Text>
-              <Text style={styles.flowText}>
-                {formatRupiah(finance.income - finance.currentExpense)}
-              </Text>
-            </View>
-          </View>
-        </View>
+      {/* Cash flow */}
+      <section className="border-b border-[#e5e5e5] dark:border-[#0d2b4a] p-4 bg-white dark:bg-[#1a1a1a]">
+        <div className="flex items-center justify-between mb-3">
+          <h2 className="text-sm font-medium text-[#1a1a1a] dark:text-[#f5f5f5]">Cash flow</h2>
+          <span className="text-xs text-[#737373] dark:text-[#999999]">{MONTH_LABEL}</span>
+        </div>
+        <div className="grid grid-cols-3 gap-3">
+          <div>
+            <p className="text-xs text-[#737373] dark:text-[#999999]">Income</p>
+            <p className="text-sm font-semibold text-[#10b981]">{formatRupiah(finance.income)}</p>
+          </div>
+          <div>
+            <p className="text-xs text-[#737373] dark:text-[#999999]">Expenses</p>
+            <p className="text-sm font-semibold text-[#ef4444]">{formatRupiah(finance.currentExpense)}</p>
+          </div>
+          <div>
+            <p className="text-xs text-[#737373] dark:text-[#999999]">Total</p>
+            <p className="text-sm font-semibold text-[#1a1a1a] dark:text-[#f5f5f5]">{formatRupiah(finance.income - finance.currentExpense)}</p>
+          </div>
+        </div>
+      </section>
 
-        {/* Spending by Category */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Spending by Category</Text>
-          <View style={{ marginTop: 8 }}>
-            {expenseBreakdown.map((item) => (
-              <View key={item.name} style={styles.categoryRow}>
-                <View style={[styles.colorDot, { backgroundColor: item.color }]} />
-                <Text style={styles.categoryName}>{item.name}</Text>
-                <Text style={styles.categoryAmount}>{formatRupiah(item.amount)}</Text>
-              </View>
-            ))}
-          </View>
-        </View>
+      {/* Spending by Category - Pie Chart */}
+      <section className="border-b border-[#e5e5e5] dark:border-[#0d2b4a] p-4 bg-white dark:bg-[#1a1a1a]">
+        <h2 className="text-sm font-medium text-[#1a1a1a] dark:text-[#f5f5f5] mb-3">Spending by Category</h2>
+        <div className="flex justify-center">
+          <ResponsiveContainer width="100%" height={200}>
+            <PieChart>
+              <Pie
+                data={expenseBreakdown}
+                cx="50%"
+                cy="50%"
+                innerRadius={50}
+                outerRadius={80}
+                paddingAngle={2}
+                dataKey="amount"
+              >
+                {expenseBreakdown.map((entry, index) => (
+                  <Cell key={`cell-${index}`} fill={entry.color} />
+                ))}
+              </Pie>
+            </PieChart>
+          </ResponsiveContainer>
+        </div>
+        <div className="mt-2 space-y-1 text-xs">
+          {expenseBreakdown.map((item) => (
+            <div key={item.name} className="flex items-center gap-2">
+              <div
+                className="w-3 h-3 rounded-sm"
+                style={{ backgroundColor: item.color }}
+              />
+              <span className="text-[#737373] dark:text-[#999999]">{item.name}</span>
+              <span className="text-[#1a1a1a] dark:text-[#f5f5f5] ml-auto">{formatRupiah(item.amount)}</span>
+            </div>
+          ))}
+        </div>
+      </section>
 
-        {/* Monthly Trend - Native Bar Chart */}
-        <View style={[styles.section, { borderBottomWidth: 0 }]}>
-          <Text style={styles.sectionTitle}>Monthly trend</Text>
-          <View style={styles.chartContainer}>
-            {monthlyData.map((item) => {
-              const incomeHeight = (item.income / maxMonthlyVal) * 120;
-              const expenseHeight = (item.expense / maxMonthlyVal) * 120;
+      {/* Monthly Trend - Bar Chart */}
+      <section className="p-4 bg-white dark:bg-[#1a1a1a]">
+        <h2 className="text-sm font-medium text-[#1a1a1a] dark:text-[#f5f5f5] mb-3">Monthly trend</h2>
+        <ResponsiveContainer width="100%" height={300}>
+          <BarChart data={monthlyData}>
+            <CartesianGrid strokeDasharray="0" stroke="#e5e5e5" vertical={false} />
+            <XAxis dataKey="month" stroke="#737373" style={{ fontSize: '12px' }} />
+            <YAxis stroke="#737373" style={{ fontSize: '12px' }} />
+            <Tooltip
+              contentStyle={{
+                backgroundColor: '#f5f5f5',
+                border: '1px solid #e5e5e5',
+                borderRadius: '6px',
+              }}
+              formatter={(value) => formatRupiah(value as number)}
+            />
+            <Legend />
+            <Bar dataKey="income" fill="#10b981" name="Income" />
+            <Bar dataKey="expense" fill="#ef4444" name="Expense" />
+          </BarChart>
+        </ResponsiveContainer>
+      </section>
 
-              return (
-                <View key={item.month} style={styles.barGroup}>
-                  <View style={styles.barsArea}>
-                    <View
-                      style={[
-                        styles.bar,
-                        { height: incomeHeight, backgroundColor: "#10b981" },
-                      ]}
-                    />
-                    <View
-                      style={[
-                        styles.bar,
-                        { height: expenseHeight, backgroundColor: "#ef4444" },
-                      ]}
-                    />
-                  </View>
-                  <Text style={styles.barLabel}>{item.month}</Text>
-                </View>
-              );
-            })}
-          </View>
-        </View>
-      </ScrollView>
-
-      {/* Floating Add Button */}
-      <TouchableOpacity
-        style={styles.fab}
-        onPress={() => setIsTransactionFormOpen(true)}
-        activeOpacity={0.8}
-      >
-        <Plus size={26} color="#ffffff" strokeWidth={2.5} />
-      </TouchableOpacity>
-
-      {/* Modal Transaction Form */}
       <TransactionForm
         isOpen={isTransactionFormOpen}
         onClose={() => setIsTransactionFormOpen(false)}
         onSubmit={handleAddTransaction}
       />
 
-      {/* Bottom Navigation */}
-      <BottomNav active="home" />
-    </SafeAreaView>
-  );
-}
+      {/* Floating Add Transaction Button */}
+      <div className="fixed bottom-20 right-4 z-40">
+        <button
+          onClick={() => setIsTransactionFormOpen(true)}
+          className="flex items-center justify-center w-14 h-14 bg-[#1e3a5f] text-white rounded-full shadow-lg shadow-black/20 hover:opacity-90 hover:scale-105 active:scale-95 transition-all"
+          aria-label="Add transaction"
+        >
+          <Plus size={26} strokeWidth={2.5} />
+        </button>
+      </div>
 
-const styles = StyleSheet.create({
-  safeArea: {
-    flex: 1,
-    backgroundColor: "#ffffff",
-  },
-  scrollContent: {
-    paddingBottom: 100,
-  },
-  header: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    padding: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: "#e5e5e5",
-  },
-  headerTitle: {
-    fontSize: 18,
-    fontWeight: "600",
-    color: "#1a1a1a",
-  },
-  iconButton: {
-    padding: 4,
-  },
-  section: {
-    padding: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: "#e5e5e5",
-  },
-  subText: {
-    fontSize: 12,
-    color: "#737373",
-  },
-  balanceText: {
-    fontSize: 36,
-    fontWeight: "700",
-    color: "#1a1a1a",
-    marginTop: 4,
-  },
-  dateLabel: {
-    fontSize: 12,
-    color: "#737373",
-    marginTop: 8,
-  },
-  sectionTitle: {
-    fontSize: 14,
-    fontWeight: "600",
-    color: "#1a1a1a",
-    marginBottom: 12,
-  },
-  gridTwo: {
-    flexDirection: "row",
-    gap: 12,
-  },
-  card: {
-    flex: 1,
-    backgroundColor: "#f5f5f5",
-    borderRadius: 8,
-    padding: 12,
-  },
-  cardAmount: {
-    fontSize: 16,
-    fontWeight: "600",
-    color: "#1a1a1a",
-    marginTop: 4,
-  },
-  rowBetween: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-  },
-  gridThree: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    marginTop: 8,
-  },
-  flowText: {
-    fontSize: 14,
-    fontWeight: "600",
-    color: "#1a1a1a",
-    marginTop: 2,
-  },
-  categoryRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginBottom: 8,
-  },
-  colorDot: {
-    width: 12,
-    height: 12,
-    borderRadius: 3,
-    marginRight: 8,
-  },
-  categoryName: {
-    fontSize: 12,
-    color: "#737373",
-  },
-  categoryAmount: {
-    fontSize: 12,
-    color: "#1a1a1a",
-    marginLeft: "auto",
-    fontWeight: "500",
-  },
-  chartContainer: {
-    flexDirection: "row",
-    justifyContent: "space-around",
-    alignItems: "flex-end",
-    height: 150,
-    marginTop: 12,
-    paddingTop: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: "#e5e5e5",
-  },
-  barGroup: {
-    alignItems: "center",
-  },
-  barsArea: {
-    flexDirection: "row",
-    alignItems: "flex-end",
-    gap: 4,
-  },
-  bar: {
-    width: 12,
-    borderRadius: 2,
-  },
-  barLabel: {
-    fontSize: 11,
-    color: "#737373",
-    marginTop: 6,
-  },
-  fab: {
-    position: "absolute",
-    bottom: 80,
-    right: 16,
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    backgroundColor: "#1e3a5f",
-    justifyContent: "center",
-    alignItems: "center",
-    elevation: 5,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 3.84,
-  },
-});
+      <BottomNav active="home" />
+    </main>
+  )
+}

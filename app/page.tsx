@@ -1,6 +1,5 @@
-import { Redirect } from 'expo-router';
+import { redirect } from "next/navigation"
 
-export default function Index() {
-  // Langsung arahkan user ke screen dashboard
-  return <Redirect href="/dashboard" />;
+export default function Page() {
+  redirect("/dashboard")
 }
