@@ -10,10 +10,10 @@ const geistMono = Geist_Mono({
   subsets: ['latin'],
 })
 
-// Konfigurasi Viewport & Theme Color untuk PWA
+// Konfigurasi Viewport & Theme Color PWA
 export const viewport: Viewport = {
   themeColor: [
-    { media: '(prefers-color-scheme: light)', color: '#ffffff' },
+    { media: '(prefers-color-scheme: light)', color: '#0d1b2a' },
     { media: '(prefers-color-scheme: dark)', color: '#0d1b2a' },
   ],
   width: 'device-width',
@@ -25,29 +25,17 @@ export const viewport: Viewport = {
 export const metadata: Metadata = {
   title: 'Money Guard',
   description: 'A simple, flat finance tracker',
-  generator: 'v0.app',
-  manifest: '/manifest.json', // 👈 PWA Manifest Link
+  manifest: '/manifest.json',
   appleWebApp: {
     capable: true,
-    statusBarStyle: 'default',
+    statusBarStyle: 'black-translucent',
     title: 'Money Guard',
+    startupImage: '/icon-pwa.png',
   },
   icons: {
-    icon: [
-      {
-        url: '/icon-light-32x32.png',
-        media: '(prefers-color-scheme: light)',
-      },
-      {
-        url: '/icon-dark-32x32.png',
-        media: '(prefers-color-scheme: dark)',
-      },
-      {
-        url: '/icon.svg',
-        type: 'image/svg+xml',
-      },
-    ],
-    apple: '/apple-icon.png',
+    icon: '/icon-pwa.png',
+    shortcut: '/icon-pwa.png',
+    apple: '/icon-pwa.png',
   },
 }
 
