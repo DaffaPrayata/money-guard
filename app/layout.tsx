@@ -1,5 +1,5 @@
 import { Analytics } from '@vercel/analytics/next'
-import type { Metadata } from 'next'
+import type { Metadata, Viewport } from 'next'
 import { Geist, Geist_Mono } from 'next/font/google'
 import './globals.css'
 import { ThemeProvider } from '@/components/money/theme-provider'
@@ -10,10 +10,28 @@ const geistMono = Geist_Mono({
   subsets: ['latin'],
 })
 
+// Konfigurasi Viewport & Theme Color untuk PWA
+export const viewport: Viewport = {
+  themeColor: [
+    { media: '(prefers-color-scheme: light)', color: '#ffffff' },
+    { media: '(prefers-color-scheme: dark)', color: '#0d1b2a' },
+  ],
+  width: 'device-width',
+  initialScale: 1,
+  maximumScale: 1,
+}
+
+// Metadata Aplikasi + PWA Support
 export const metadata: Metadata = {
   title: 'Money Guard',
   description: 'A simple, flat finance tracker',
   generator: 'v0.app',
+  manifest: '/manifest.json', // 👈 PWA Manifest Link
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: 'default',
+    title: 'Money Guard',
+  },
   icons: {
     icon: [
       {
