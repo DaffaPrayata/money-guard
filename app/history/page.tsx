@@ -1,91 +1,147 @@
 'use client'
 
-import { useMemo, useState } from 'react'
-import { Search, X } from 'lucide-react'
+import { useMemo, useState, useEffect } from 'react'
+import { Search, X, Trash2 } from 'lucide-react'
 import { BottomNav } from '@/components/money/bottom-nav'
-import { calendarTransactions, formatRupiah, expenseCategories, incomeCategories } from '@/lib/money-data'
-import type { CalendarTxn } from '@/lib/money-data'
+import { formatRupiah, expenseCategories, incomeCategories } from '@/lib/money-data'
+
+interface Transaction {
+  id: string
+  title: string
+  amount: number
+  type: 'income' | 'expense'
+  category: string
+  account: 'Cash' | 'Bank account'
+  date: string
+}
 
 export default function HistoryPage() {
+  const [transactions, setTransactions] = useState<Transaction[]>([])
   const [searchQuery, setSearchQuery] = useState('')
   const [filterType, setFilterType] = useState<'all' | 'income' | 'expense'>('all')
   const [filterCategory, setFilterCategory] = useState<string>('all')
+  const [isLoaded, setIsLoaded] = useState(false)
 
-  // Get all categories for filter dropdown
-  const allCategories = [
+  // 1. Gabungkan semua kategori bawaan
+  const allCategories = useMemo(() => [
     ...expenseCategories.map(c => ({ name: c.name, icon: c.icon })),
     ...incomeCategories.map(c => ({ name: c.name, icon: c.icon })),
-  ]
+  ], [])
 
-  // Map transaction names to their categories
-  const getTransactionCategory = (name: string, type: 'income' | 'expense') => {
-    const categories = type === 'income' ? incomeCategories : expenseCategories
-    // For now, match by generic category. In a real app, transactions would have a category field
-    // This is a simplified mapping - in production, use actual category IDs
-    const categoryMap: Record<string, string> = {
-      'Salary': 'Gaji',
-      'Refund': 'Gaji',
-      'Groceries': 'Food & Drinks',
-      'Lunch': 'Food & Drinks',
-      'Coffee': 'Food & Drinks',
-      'Bus fare': 'Transport',
-      'Taxi': 'Transport',
-      'New shoes': 'Shopping',
-      'Dinner out': 'Food & Drinks',
+  // 2. Fungsi Pembantu: Ekstrak / Dapatkan Emoji dan Nama Kategori Bersih
+  const parseCategory = (rawCategory: string) => {
+    if (!rawCategory) return { icon: '💰', name: 'General' }
+
+    // Regex untuk mendeteksi emoji di awal string
+    const emojiRegex = /^(\p{Extended_Pictographic}|\p{Emoji_Presentation})/u
+    const match = rawCategory.trim().match(emojiRegex)
+
+    if (match) {
+      const icon = match[0]
+      const name = rawCategory.replace(icon, '').trim()
+      return { icon, name: name || rawCategory }
     }
-    return categoryMap[name] || null
+
+    // Jika tidak ada emoji di string, cari dari master list
+    const found = allCategories.find(
+      c => c.name.toLowerCase() === rawCategory.toLowerCase()
+    )
+
+    return {
+      icon: found?.icon || '💰',
+      name: rawCategory,
+    }
+  }
+
+  // 3. Ambil data dari LocalStorage
+  useEffect(() => {
+    const loadTransactions = () => {
+      const saved = localStorage.getItem("money_guard_transactions")
+      if (saved) {
+        try {
+          setTransactions(JSON.parse(saved))
+        } catch (e) {
+          console.error("Failed to parse transactions", e)
+          setTransactions([])
+        }
+      } else {
+        setTransactions([])
+      }
+      setIsLoaded(true)
+    }
+
+    loadTransactions()
+
+    window.addEventListener("storage", loadTransactions)
+    return () => window.removeEventListener("storage", loadTransactions)
+  }, [])
+
+  // Fungsi Hapus Transaction
+  const handleDeleteTransaction = (id: string) => {
+    const updated = transactions.filter((t) => t.id !== id)
+    setTransactions(updated)
+    localStorage.setItem("money_guard_transactions", JSON.stringify(updated))
   }
 
   // Filter and search transactions
   const filteredTransactions = useMemo(() => {
-    let result = [...calendarTransactions]
+    let result = [...transactions]
 
-    // Filter by type
+    // Filter type
     if (filterType !== 'all') {
       result = result.filter(t => t.type === filterType)
     }
 
-    // Filter by category
+    // Filter category
     if (filterCategory !== 'all') {
       result = result.filter(t => {
-        const category = getTransactionCategory(t.name, t.type)
-        return category === filterCategory
+        const parsed = parseCategory(t.category)
+        return parsed.name.toLowerCase().includes(filterCategory.toLowerCase()) ||
+               t.category.toLowerCase().includes(filterCategory.toLowerCase())
       })
     }
 
-    // Search by name
+    // Search query
     if (searchQuery.trim()) {
       const query = searchQuery.toLowerCase()
-      result = result.filter(t => t.name.toLowerCase().includes(query))
+      result = result.filter(t => t.title.toLowerCase().includes(query))
     }
 
     return result
-  }, [searchQuery, filterType, filterCategory])
+  }, [transactions, searchQuery, filterType, filterCategory])
 
-  // Group transactions by date (descending)
+  // Group transactions by date
   const groupedByDate = useMemo(() => {
-    const groups: Record<number, CalendarTxn[]> = {}
-    
-    // Sort by day descending
-    const sorted = [...filteredTransactions].sort((a, b) => b.day - a.day)
-    
+    const groups: Record<string, Transaction[]> = {}
+
+    const sorted = [...filteredTransactions].sort(
+      (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
+    )
+
     sorted.forEach(t => {
-      if (!groups[t.day]) {
-        groups[t.day] = []
+      const dateStr = new Date(t.date).toLocaleDateString('en-US', {
+        month: 'short',
+        day: 'numeric',
+        year: 'numeric',
+      })
+      if (!groups[dateStr]) {
+        groups[dateStr] = []
       }
-      groups[t.day].push(t)
+      groups[dateStr].push(t)
     })
 
-    return Object.entries(groups)
-      .sort(([dayA], [dayB]) => Number(dayB) - Number(dayA))
-      .map(([day, txns]) => ({ day: Number(day), transactions: txns }))
+    return Object.entries(groups).map(([dateLabel, txns]) => ({
+      dateLabel,
+      transactions: txns,
+    }))
   }, [filteredTransactions])
 
-  // Get category icon by transaction name
-  const getCategoryIcon = (txnName: string, type: 'income' | 'expense') => {
-    const categoryName = getTransactionCategory(txnName, type)
-    const category = allCategories.find(c => c.name === categoryName)
-    return category?.icon || '💰'
+  if (!isLoaded) {
+    return (
+      <main className="max-w-[480px] mx-auto bg-white dark:bg-[#1a1a1a] min-h-screen p-4 text-center text-[#737373]">
+        Loading History...
+      </main>
+    )
   }
 
   return (
@@ -162,48 +218,64 @@ export default function HistoryPage() {
         {groupedByDate.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-16 text-center">
             <p className="text-sm text-[#737373] dark:text-[#999999] mb-2">No transactions found</p>
-            <p className="text-xs text-[#737373] dark:text-[#999999]">Try adjusting your search or filters</p>
+            <p className="text-xs text-[#737373] dark:text-[#999999]">Try adding new transactions or adjusting filters</p>
           </div>
         ) : (
           <div className="flex flex-col gap-6">
             {groupedByDate.map(group => (
-              <div key={group.day}>
+              <div key={group.dateLabel}>
                 {/* Date Header */}
                 <div className="mb-3">
                   <h3 className="text-xs font-semibold text-[#737373] dark:text-[#999999] uppercase tracking-wide">
-                    May {group.day}, 2026
+                    {group.dateLabel}
                   </h3>
                 </div>
 
                 {/* Transactions for this date */}
                 <div className="flex flex-col gap-2">
-                  {group.transactions.map((txn, idx) => (
-                    <div
-                      key={idx}
-                      className="flex items-center gap-3 py-3 px-3 bg-[#f5f5f5] dark:bg-[#0d2b4a] rounded-lg border border-[#e5e5e5] dark:border-[#0d2b4a]"
-                    >
-                      {/* Category Icon */}
-                      <div className="text-lg">{getCategoryIcon(txn.name, txn.type)}</div>
+                  {group.transactions.map((txn) => {
+                    const parsed = parseCategory(txn.category)
 
-                      {/* Transaction Details */}
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium text-[#1a1a1a] dark:text-[#f5f5f5] truncate">
-                          {txn.name}
-                        </p>
-                        <p className="text-xs text-[#737373] dark:text-[#999999]">
-                          May {txn.day}
-                        </p>
-                      </div>
-
-                      {/* Amount */}
+                    return (
                       <div
-                        className="text-sm font-semibold whitespace-nowrap"
-                        style={{ color: txn.type === 'income' ? '#10b981' : '#ef4444' }}
+                        key={txn.id}
+                        className="flex items-center gap-3 py-3 px-3 bg-[#f5f5f5] dark:bg-[#0d2b4a] rounded-lg border border-[#e5e5e5] dark:border-[#0d2b4a]"
                       >
-                        {txn.type === 'income' ? '+' : '-'}{formatRupiah(txn.amount)}
+                        {/* Emoji Category Icon Box */}
+                        <div className="w-10 h-10 rounded-full bg-white dark:bg-[#1a1a1a] flex items-center justify-center text-xl shadow-sm shrink-0 border border-[#e5e5e5] dark:border-[#1e3a5f]">
+                          {parsed.icon}
+                        </div>
+
+                        {/* Transaction Details */}
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium text-[#1a1a1a] dark:text-[#f5f5f5] truncate">
+                            {txn.title}
+                          </p>
+                          <p className="text-xs text-[#737373] dark:text-[#999999] truncate">
+                            {parsed.name} • {txn.account}
+                          </p>
+                        </div>
+
+                        {/* Amount & Delete */}
+                        <div className="flex items-center gap-3">
+                          <div
+                            className="text-sm font-semibold whitespace-nowrap"
+                            style={{ color: txn.type === 'income' ? '#10b981' : '#ef4444' }}
+                          >
+                            {txn.type === 'income' ? '+' : '-'}{formatRupiah(txn.amount)}
+                          </div>
+
+                          <button
+                            onClick={() => handleDeleteTransaction(txn.id)}
+                            className="text-[#737373] hover:text-red-500 p-1 transition-colors"
+                            aria-label="Delete transaction"
+                          >
+                            <Trash2 size={16} />
+                          </button>
+                        </div>
                       </div>
-                    </div>
-                  ))}
+                    )
+                  })}
                 </div>
               </div>
             ))}

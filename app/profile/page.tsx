@@ -2,14 +2,12 @@
 
 import { useState, useEffect } from "react"
 import { User, Download, RotateCcw, Moon, Sun } from "lucide-react"
-import { useRouter } from "next/navigation"
 import { BottomNav } from "@/components/money/bottom-nav"
 import { Button } from "@/components/money/button"
 import { Modal } from "@/components/money/modal"
 import { finance, calendarTransactions, formatRupiah, currencies } from "@/lib/money-data"
 
 export default function ProfilePage() {
-  const router = useRouter()
   const [dark, setDark] = useState(false)
   const [currency, setCurrency] = useState('IDR')
   const [resetOpen, setResetOpen] = useState(false)
@@ -62,15 +60,14 @@ export default function ProfilePage() {
         <h1 className="text-lg font-semibold text-[#1a1a1a] dark:text-[#f5f5f5]">Profile</h1>
       </header>
 
-      {/* User card */}
+      {/* User card (Tanpa Email) */}
       <section className="p-4 bg-white dark:bg-[#1a1a1a]">
         <div className="flex items-center gap-4 border border-[#e5e5e5] dark:border-[#0d2b4a] rounded-lg p-4 bg-white dark:bg-[#1a1a1a]">
-          <div className="w-14 h-14 rounded-full bg-[#1e3a5f] text-white flex items-center justify-center">
+          <div className="w-14 h-14 rounded-full bg-[#1e3a5f] text-white flex items-center justify-center shrink-0">
             <User size={26} />
           </div>
           <div>
             <div className="text-base font-semibold text-[#1a1a1a] dark:text-[#f5f5f5]">{finance.user.name}</div>
-            <div className="text-sm text-[#737373] dark:text-[#999999]">{finance.user.email}</div>
           </div>
         </div>
 
@@ -87,7 +84,7 @@ export default function ProfilePage() {
         </div>
       </section>
 
-      {/* Settings list */}
+      {/* Settings list (Tanpa Logout) */}
       <section className="px-4 bg-white dark:bg-[#1a1a1a]">
         <div className="border border-[#e5e5e5] dark:border-[#0d2b4a] rounded-lg divide-y divide-[#f0f0f0] dark:divide-[#0d2b4a] bg-white dark:bg-[#1a1a1a]">
           {/* Currency selector */}
@@ -132,13 +129,6 @@ export default function ProfilePage() {
               />
             </button>
           </div>
-
-          <button
-            onClick={() => router.push('/login')}
-            className="w-full flex items-center gap-3 p-4 text-left text-[#1e3a5f] hover:bg-[#f5f5f5] dark:hover:bg-[#0d2b4a] transition-colors"
-          >
-            <span className="text-sm">Logout</span>
-          </button>
 
           <button
             onClick={() => setResetOpen(true)}

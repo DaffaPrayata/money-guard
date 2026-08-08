@@ -188,3 +188,12 @@
 .dark .border-r {
   border-color: #0d2b4a;
 }
+
+/* 🌟 DITAMBAHKAN: Sembunyikan scrollbar tapi tetap bisa di-scroll 🌟 */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none; /* IE & Edge */
+  scrollbar-width: none; /* Firefox */
+}

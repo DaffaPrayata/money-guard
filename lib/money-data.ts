@@ -1,17 +1,23 @@
 export type Txn = {
-  id: number
+  id: number | string
   icon: string
   name: string
   date: string
   amount: number
   type: "income" | "expense"
+  category?: string
+  account: "Cash" | "Bank account"
 }
 
 export const MONTH_LABEL = "May 2026"
 
+// 🟢 Saldo Awal Murni Di-nol-kan (Tidak ada lagi default 500rb & 2jt)
+export const INITIAL_CASH = 0
+export const INITIAL_BANK = 0
+
 export const accounts = [
-  { name: "Cash", balance: 0 },
-  { name: "Bank account", balance: 0 },
+  { name: "Cash", balance: INITIAL_CASH },
+  { name: "Bank account", balance: INITIAL_BANK },
 ]
 
 export const cashFlow = { income: 0, expenses: 0, total: 0 }
@@ -52,42 +58,27 @@ export function formatMoney(n: number) {
   return `$${n.toFixed(2)}`
 }
 
-/* ----- Money Guard finance state (Rupiah, used by new features) ----- */
+/* ----- Money Guard finance state ----- */
 
 export type ExpenseBreakdown = { name: string; amount: number; color: string }
 
 export const finance = {
-  user: { name: "Budi Santoso", email: "budi@email.com" },
-  totalBalance: 2_500_000,
+  user: { name: "User", email: "user@email.com" },
+  totalBalance: 0,
   monthlyBudget: 2_000_000,
-  currentExpense: 1_250_000,
-  lastMonthExpense: 1_500_000,
-  income: 5_000_000,
+  currentExpense: 0,
+  lastMonthExpense: 0,
+  income: 0,
 }
 
-export const expenseBreakdown: ExpenseBreakdown[] = [
-  { name: "Food & Drinks", amount: 750_000, color: "#1e3a5f" },
-  { name: "Shopping", amount: 300_000, color: "#10b981" },
-  { name: "Transport", amount: 200_000, color: "#737373" },
-]
+export const expenseBreakdown: ExpenseBreakdown[] = []
 
 export type CalendarTxn = { day: number; name: string; amount: number; type: "income" | "expense" }
 
-// Transactions across the current month (May 2026) keyed by day
-export const calendarTransactions: CalendarTxn[] = [
-  { day: 1, name: "Salary", amount: 5_000_000, type: "income" },
-  { day: 3, name: "Groceries", amount: 120_000, type: "expense" },
-  { day: 8, name: "Bus fare", amount: 20_000, type: "expense" },
-  { day: 12, name: "Lunch", amount: 65_000, type: "expense" },
-  { day: 15, name: "Refund", amount: 50_000, type: "income" },
-  { day: 16, name: "New shoes", amount: 350_000, type: "expense" },
-  { day: 16, name: "Coffee", amount: 35_000, type: "expense" },
-  { day: 22, name: "Dinner out", amount: 180_000, type: "expense" },
-  { day: 27, name: "Taxi", amount: 80_000, type: "expense" },
-]
+export const calendarTransactions: CalendarTxn[] = []
 
 export function formatRupiah(n: number) {
-  return "Rp " + n.toLocaleString("id-ID")
+  return "Rp " + (n || 0).toLocaleString("id-ID")
 }
 
 export const currencies = [
@@ -105,4 +96,28 @@ export function formatCurrency(amount: number, currencyCode: string = 'IDR') {
   if (currencyCode === 'IDR') return formatRupiah(amount)
   
   return currency.symbol + (amount / 1000).toFixed(2)
+}
+
+/* ----- Menghitung Saldo Realtime Cash & Bank ----- */
+
+export function getRealtimeBalances(txnList: Txn[]) {
+  let cash = INITIAL_CASH
+  let bank = INITIAL_BANK
+
+  if (!Array.isArray(txnList)) return { cash, bank }
+
+  txnList.forEach((t) => {
+    const amt = Number(t.amount) || 0
+    const acc = (t.account || "").toLowerCase()
+    
+    if (acc.includes("cash")) {
+      if (t.type === "income") cash += amt
+      else if (t.type === "expense") cash -= amt
+    } else if (acc.includes("bank")) {
+      if (t.type === "income") bank += amt
+      else if (t.type === "expense") bank -= amt
+    }
+  })
+
+  return { cash, bank }
 }

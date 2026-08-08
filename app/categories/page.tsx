@@ -1,193 +1,126 @@
 'use client'
 
-import { useState, useMemo } from 'react'
-import { Plus, Edit2, Trash2 } from 'lucide-react'
+import { useMemo, useState, useEffect } from 'react'
+import { Search, X, Trash2 } from 'lucide-react'
 import { BottomNav } from '@/components/money/bottom-nav'
-import { Modal } from '@/components/money/modal'
-import { Input } from '@/components/money/input'
-import { Button } from '@/components/money/button'
-import { formatRupiah } from '@/lib/money-data'
+import { formatRupiah, expenseCategories, incomeCategories } from '@/lib/money-data'
 
-interface Category {
+interface Transaction {
   id: string
-  icon: string
-  name: string
+  title: string
+  amount: number
   type: 'income' | 'expense'
-  color: string
-  monthlyBudget: number
-  spent: number
+  category: string
+  account: 'Cash' | 'Bank account'
+  date: string
 }
 
-const EMOJI_ICONS = ['🍔', '🛍️', '🏠', '📱', '🚗', '🏥', '💼', '💻', '📚', '🎮', '✈️', '🎬', '🎵', '⚽', '🌳']
-const COLORS = ['#ef4444', '#f97316', '#eab308', '#22c55e', '#10b981', '#06b6d4', '#0ea5e9', '#3b82f6', '#6366f1', '#8b5cf6', '#d946ef', '#ec4899', '#f43f5e']
+export default function HistoryPage() {
+  const [transactions, setTransactions] = useState<Transaction[]>([])
+  const [searchQuery, setSearchQuery] = useState('')
+  const [filterType, setFilterType] = useState<'all' | 'income' | 'expense'>('all')
+  const [filterCategory, setFilterCategory] = useState<string>('all')
+  const [isLoaded, setIsLoaded] = useState(false)
 
-// Mock category data with budgets
-const mockCategories: Category[] = [
-  { id: '1', icon: '💼', name: 'Gaji', type: 'income', color: '#10b981', monthlyBudget: 5_000_000, spent: 0 },
-  { id: '2', icon: '💻', name: 'Freelance', type: 'income', color: '#06b6d4', monthlyBudget: 2_000_000, spent: 0 },
-  { id: '3', icon: '🍔', name: 'Food & Drinks', type: 'expense', color: '#f59e0b', monthlyBudget: 1_500_000, spent: 600_000 },
-  { id: '4', icon: '🛍️', name: 'Shopping', type: 'expense', color: '#ec4899', monthlyBudget: 800_000, spent: 420_000 },
-  { id: '5', icon: '🏠', name: 'Housing', type: 'expense', color: '#8b5cf6', monthlyBudget: 3_000_000, spent: 2_400_000 },
-  { id: '6', icon: '📱', name: 'Bills', type: 'expense', color: '#06b6d4', monthlyBudget: 500_000, spent: 450_000 },
-  { id: '7', icon: '🚗', name: 'Transport', type: 'expense', color: '#ef4444', monthlyBudget: 1_000_000, spent: 950_000 },
-  { id: '8', icon: '🏥', name: 'Healthcare', type: 'expense', color: '#10b981', monthlyBudget: 600_000, spent: 0 },
-]
+  // 1. Gabungkan semua kategori untuk memetakan Emoji dan Nama Kategori
+  const allCategories = useMemo(() => [
+    ...expenseCategories.map(c => ({ name: c.name, icon: c.icon })),
+    ...incomeCategories.map(c => ({ name: c.name, icon: c.icon })),
+  ], [])
 
-export default function CategoriesPage() {
-  const [categories, setCategories] = useState<Category[]>(mockCategories)
-  const [isAddModalOpen, setIsAddModalOpen] = useState(false)
-  const [editingId, setEditingId] = useState<string | null>(null)
-  const [showDeleteConfirm, setShowDeleteConfirm] = useState<string | null>(null)
-
-  const [formData, setFormData] = useState({
-    name: '',
-    type: 'expense' as 'income' | 'expense',
-    icon: '💼',
-    color: '#ef4444',
-    monthlyBudget: 0,
-  })
-
-  // Group categories by type
-  const groupedCategories = useMemo(() => {
-    return {
-      income: categories.filter(c => c.type === 'income'),
-      expense: categories.filter(c => c.type === 'expense'),
-    }
-  }, [categories])
-
-  // Get budget progress color
-  const getBudgetColor = (spent: number, budget: number): string => {
-    if (budget === 0) return '#e5e5e5'
-    const percentage = (spent / budget) * 100
-    if (percentage >= 80) return '#ef4444' // Red
-    if (percentage >= 50) return '#f59e0b' // Amber
-    return '#10b981' // Green
+  // Fungsi Pembantu: Ambil Icon Emoji berdasarkan Nama Kategori
+  const getCategoryIcon = (categoryName: string) => {
+    const matched = allCategories.find(
+      c => c.name.toLowerCase() === categoryName.toLowerCase()
+    )
+    return matched?.icon || '💰' // Emoji fallback default jika tidak ketemu
   }
 
-  const handleAddCategory = () => {
-    if (!formData.name.trim()) return
-
-    if (editingId) {
-      setCategories(categories.map(c =>
-        c.id === editingId
-          ? { ...c, ...formData }
-          : c
-      ))
-      setEditingId(null)
-    } else {
-      const newCategory: Category = {
-        id: Date.now().toString(),
-        ...formData,
-        spent: 0,
+  // 2. Ambil data REALTIME dari LocalStorage
+  useEffect(() => {
+    const loadTransactions = () => {
+      const saved = localStorage.getItem("money_guard_transactions")
+      if (saved) {
+        try {
+          setTransactions(JSON.parse(saved))
+        } catch (e) {
+          console.error("Failed to parse transactions", e)
+          setTransactions([])
+        }
+      } else {
+        setTransactions([])
       }
-      setCategories([...categories, newCategory])
+      setIsLoaded(true)
     }
 
-    setFormData({ name: '', type: 'expense', icon: '💼', color: '#ef4444', monthlyBudget: 0 })
-    setIsAddModalOpen(false)
+    loadTransactions()
+
+    window.addEventListener("storage", loadTransactions)
+    return () => window.removeEventListener("storage", loadTransactions)
+  }, [])
+
+  // Fungsi Hapus Satuan Transaksi
+  const handleDeleteTransaction = (id: string) => {
+    const updated = transactions.filter((t) => t.id !== id)
+    setTransactions(updated)
+    localStorage.setItem("money_guard_transactions", JSON.stringify(updated))
   }
 
-  const handleEditCategory = (category: Category) => {
-    setFormData({
-      name: category.name,
-      type: category.type,
-      icon: category.icon,
-      color: category.color,
-      monthlyBudget: category.monthlyBudget,
+  // Filter and search transactions
+  const filteredTransactions = useMemo(() => {
+    let result = [...transactions]
+
+    // Filter by type
+    if (filterType !== 'all') {
+      result = result.filter(t => t.type === filterType)
+    }
+
+    // Filter by category
+    if (filterCategory !== 'all') {
+      result = result.filter(t => t.category.toLowerCase() === filterCategory.toLowerCase())
+    }
+
+    // Search by title
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase()
+      result = result.filter(t => t.title.toLowerCase().includes(query))
+    }
+
+    return result
+  }, [transactions, searchQuery, filterType, filterCategory])
+
+  // Group transactions by formatted date string
+  const groupedByDate = useMemo(() => {
+    const groups: Record<string, Transaction[]> = {}
+
+    // Sort by date descending (terbaru di atas)
+    const sorted = [...filteredTransactions].sort(
+      (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
+    )
+
+    sorted.forEach(t => {
+      const dateStr = new Date(t.date).toLocaleDateString('en-US', {
+        month: 'short',
+        day: 'numeric',
+        year: 'numeric',
+      })
+      if (!groups[dateStr]) {
+        groups[dateStr] = []
+      }
+      groups[dateStr].push(t)
     })
-    setEditingId(category.id)
-    setIsAddModalOpen(true)
-  }
 
-  const handleDeleteCategory = (id: string) => {
-    setCategories(categories.filter(c => c.id !== id))
-    setShowDeleteConfirm(null)
-  }
+    return Object.entries(groups).map(([dateLabel, txns]) => ({
+      dateLabel,
+      transactions: txns,
+    }))
+  }, [filteredTransactions])
 
-  const CategoryRow = ({ category }: { category: Category }) => {
-    const percentage = category.monthlyBudget > 0 ? (category.spent / category.monthlyBudget) * 100 : 0
-    const budgetColor = getBudgetColor(category.spent, category.monthlyBudget)
-
+  if (!isLoaded) {
     return (
-      <div
-        key={category.id}
-        className="flex items-center gap-3 p-4 border border-[#e5e5e5] dark:border-[#0d2b4a] rounded-lg hover:bg-[#f5f5f5] dark:hover:bg-[#0d2b4a] transition-colors cursor-pointer"
-        onClick={() => handleEditCategory(category)}
-      >
-        {/* Icon and Info */}
-        <div className="flex-1">
-          <div className="flex items-center gap-2 mb-1">
-            <div className="text-2xl">{category.icon}</div>
-            <div className="font-medium text-[#1a1a1a] dark:text-[#f5f5f5]">{category.name}</div>
-          </div>
-          <div className="text-xs text-[#737373] dark:text-[#999999] mb-2">
-            {formatRupiah(category.spent)} / {formatRupiah(category.monthlyBudget)}
-          </div>
-          {/* Progress Bar */}
-          <div className="h-1.5 bg-[#e5e5e5] dark:bg-[#0d2b4a] rounded-full overflow-hidden">
-            <div
-              className="h-full transition-all"
-              style={{
-                width: `${Math.min(percentage, 100)}%`,
-                backgroundColor: budgetColor,
-              }}
-            />
-          </div>
-        </div>
-
-        {/* Action Buttons */}
-        <div className="flex items-center gap-2 flex-shrink-0">
-          <button
-            onClick={(e) => {
-              e.stopPropagation()
-              handleEditCategory(category)
-            }}
-            className="p-2 text-[#1e3a5f] hover:bg-[#e5e5e5] dark:hover:bg-[#1a1a1a] rounded-lg transition-colors"
-            aria-label="Edit"
-          >
-            <Edit2 size={16} />
-          </button>
-          <button
-            onClick={(e) => {
-              e.stopPropagation()
-              setShowDeleteConfirm(category.id)
-            }}
-            className="p-2 text-[#ef4444] hover:bg-[#e5e5e5] dark:hover:bg-[#1a1a1a] rounded-lg transition-colors"
-            aria-label="Delete"
-          >
-            <Trash2 size={16} />
-          </button>
-        </div>
-
-        {/* Delete Confirmation Modal */}
-        {showDeleteConfirm === category.id && (
-          <Modal
-            isOpen={true}
-            onClose={() => setShowDeleteConfirm(null)}
-            title="Delete Category"
-          >
-            <p className="text-sm text-[#737373] dark:text-[#999999] mb-4">
-              Are you sure you want to delete "{category.name}"? This cannot be undone.
-            </p>
-            <div className="flex gap-2">
-              <Button
-                variant="secondary"
-                onClick={() => setShowDeleteConfirm(null)}
-                className="flex-1"
-              >
-                Cancel
-              </Button>
-              <Button
-                variant="danger"
-                onClick={() => handleDeleteCategory(category.id)}
-                className="flex-1"
-              >
-                Delete
-              </Button>
-            </div>
-          </Modal>
-        )}
-      </div>
+      <main className="max-w-[480px] mx-auto bg-white dark:bg-[#1a1a1a] min-h-screen p-4 text-center text-[#737373]">
+        Loading History...
+      </main>
     )
   }
 
@@ -195,158 +128,138 @@ export default function CategoriesPage() {
     <main className="max-w-[480px] mx-auto bg-white dark:bg-[#1a1a1a] min-h-screen pb-20 transition-colors">
       {/* Header */}
       <header className="border-b border-[#e5e5e5] dark:border-[#0d2b4a] p-4 bg-white dark:bg-[#1a1a1a] sticky top-0 z-10">
-        <div className="flex items-center justify-between">
-          <h1 className="text-lg font-semibold text-[#1a1a1a] dark:text-[#f5f5f5]">Categories</h1>
-          <button
-            onClick={() => {
-              setFormData({ name: '', type: 'expense', icon: '💼', color: '#ef4444', monthlyBudget: 0 })
-              setEditingId(null)
-              setIsAddModalOpen(true)
-            }}
-            className="flex items-center gap-1.5 px-3 py-1.5 bg-[#1e3a5f] text-white rounded-lg text-sm font-medium hover:opacity-90 transition-opacity"
-          >
-            <Plus size={16} />
-            Add
-          </button>
+        <h1 className="text-lg font-semibold text-[#1a1a1a] dark:text-[#f5f5f5] mb-3">History</h1>
+
+        {/* Search Bar */}
+        <div className="flex items-center gap-2 bg-[#f5f5f5] dark:bg-[#0d2b4a] rounded-lg px-3 py-2">
+          <Search size={16} className="text-[#737373] dark:text-[#999999]" />
+          <input
+            type="text"
+            placeholder="Search transactions..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="flex-1 bg-transparent outline-none text-sm text-[#1a1a1a] dark:text-[#f5f5f5] placeholder-[#737373] dark:placeholder-[#999999]"
+          />
+          {searchQuery && (
+            <button
+              onClick={() => setSearchQuery('')}
+              className="text-[#737373] dark:text-[#999999] hover:opacity-70"
+            >
+              <X size={16} />
+            </button>
+          )}
         </div>
       </header>
 
-      {/* Content */}
-      <div className="p-4 space-y-6">
-        {/* Income Categories */}
-        {groupedCategories.income.length > 0 && (
+      {/* Filters */}
+      <section className="border-b border-[#e5e5e5] dark:border-[#0d2b4a] p-4 bg-white dark:bg-[#1a1a1a]">
+        <div className="flex flex-col gap-3">
+          {/* Type Filter */}
           <div>
-            <h2 className="text-sm font-medium text-[#1a1a1a] dark:text-[#f5f5f5] mb-3">Income</h2>
-            <div className="space-y-2">
-              {groupedCategories.income.map(cat => (
-                <CategoryRow key={cat.id} category={cat} />
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* Expense Categories */}
-        {groupedCategories.expense.length > 0 && (
-          <div>
-            <h2 className="text-sm font-medium text-[#1a1a1a] dark:text-[#f5f5f5] mb-3">Expenses</h2>
-            <div className="space-y-2">
-              {groupedCategories.expense.map(cat => (
-                <CategoryRow key={cat.id} category={cat} />
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* Empty State */}
-        {categories.length === 0 && (
-          <div className="text-center py-12">
-            <div className="text-4xl mb-2">📋</div>
-            <p className="text-[#737373] dark:text-[#999999]">No categories yet</p>
-            <p className="text-sm text-[#737373] dark:text-[#999999] mt-1">Add your first category to get started</p>
-          </div>
-        )}
-      </div>
-
-      {/* Add/Edit Modal */}
-      <Modal
-        isOpen={isAddModalOpen}
-        onClose={() => {
-          setIsAddModalOpen(false)
-          setEditingId(null)
-          setFormData({ name: '', type: 'expense', icon: '💼', color: '#ef4444', monthlyBudget: 0 })
-        }}
-        title={editingId ? 'Edit Category' : 'Add Category'}
-      >
-        <div className="space-y-4">
-          {/* Name */}
-          <Input
-            label="Category Name"
-            value={formData.name}
-            onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-            placeholder="e.g., Groceries"
-          />
-
-          {/* Type */}
-          <div>
-            <label className="text-xs text-[#525252] dark:text-[#999999] block mb-1.5">Type</label>
+            <label className="text-xs text-[#737373] dark:text-[#999999] font-medium block mb-1.5">Type</label>
             <div className="flex gap-2">
-              {(['income', 'expense'] as const).map(type => (
+              {['all', 'income', 'expense'].map(type => (
                 <button
                   key={type}
-                  onClick={() => setFormData({ ...formData, type })}
-                  className={`flex-1 py-2 px-3 rounded-lg text-sm font-medium transition-colors ${
-                    formData.type === type
+                  onClick={() => setFilterType(type as 'all' | 'income' | 'expense')}
+                  className={`flex-1 py-1.5 px-2 rounded-md text-xs font-medium transition-colors ${
+                    filterType === type
                       ? 'bg-[#1e3a5f] text-white'
-                      : 'bg-[#f5f5f5] dark:bg-[#0d2b4a] text-[#1a1a1a] dark:text-[#f5f5f5]'
+                      : 'bg-[#f5f5f5] dark:bg-[#0d2b4a] text-[#737373] dark:text-[#999999]'
                   }`}
                 >
-                  {type.charAt(0).toUpperCase() + type.slice(1)}
+                  {type === 'all' ? 'All' : type === 'income' ? 'Income' : 'Expense'}
                 </button>
               ))}
             </div>
           </div>
 
-          {/* Icon Picker */}
+          {/* Category Filter */}
           <div>
-            <label className="text-xs text-[#525252] dark:text-[#999999] block mb-1.5">Icon</label>
-            <div className="grid grid-cols-6 gap-2">
-              {EMOJI_ICONS.map(emoji => (
-                <button
-                  key={emoji}
-                  onClick={() => setFormData({ ...formData, icon: emoji })}
-                  className={`text-2xl py-2 rounded-lg transition-colors ${
-                    formData.icon === emoji
-                      ? 'bg-[#1e3a5f] dark:bg-[#1e3a5f]'
-                      : 'hover:bg-[#f5f5f5] dark:hover:bg-[#0d2b4a]'
-                  }`}
-                >
-                  {emoji}
-                </button>
+            <label className="text-xs text-[#737373] dark:text-[#999999] font-medium block mb-1.5">Category</label>
+            <select
+              value={filterCategory}
+              onChange={(e) => setFilterCategory(e.target.value)}
+              className="w-full py-2 px-3 border border-[#e5e5e5] dark:border-[#0d2b4a] rounded-md text-sm bg-white dark:bg-[#0d2b4a] text-[#1a1a1a] dark:text-[#f5f5f5] outline-none"
+            >
+              <option value="all">All Categories</option>
+              {allCategories.map(cat => (
+                <option key={cat.name} value={cat.name}>
+                  {cat.icon} {cat.name}
+                </option>
               ))}
-            </div>
+            </select>
           </div>
-
-          {/* Color Picker */}
-          <div>
-            <label className="text-xs text-[#525252] dark:text-[#999999] block mb-1.5">Color</label>
-            <div className="grid grid-cols-6 gap-2">
-              {COLORS.map(color => (
-                <button
-                  key={color}
-                  onClick={() => setFormData({ ...formData, color })}
-                  className="w-full h-10 rounded-lg transition-transform hover:scale-105"
-                  style={{
-                    backgroundColor: color,
-                    border: formData.color === color ? '3px solid #1a1a1a' : '2px solid #e5e5e5',
-                  }}
-                  aria-label={`Color ${color}`}
-                />
-              ))}
-            </div>
-          </div>
-
-          {/* Monthly Budget */}
-          <Input
-            label="Monthly Budget"
-            type="number"
-            value={formData.monthlyBudget}
-            onChange={(e) => setFormData({ ...formData, monthlyBudget: Number(e.target.value) })}
-            placeholder="0"
-          />
-
-          {/* Submit Button */}
-          <Button
-            type="button"
-            variant="primary"
-            onClick={handleAddCategory}
-            className="w-full"
-          >
-            {editingId ? 'Update Category' : 'Add Category'}
-          </Button>
         </div>
-      </Modal>
+      </section>
 
-      <BottomNav active="more" />
+      {/* Transactions List */}
+      <section className="p-4">
+        {groupedByDate.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-16 text-center">
+            <p className="text-sm text-[#737373] dark:text-[#999999] mb-2">No transactions found</p>
+            <p className="text-xs text-[#737373] dark:text-[#999999]">Try adding new transactions or adjusting filters</p>
+          </div>
+        ) : (
+          <div className="flex flex-col gap-6">
+            {groupedByDate.map(group => (
+              <div key={group.dateLabel}>
+                {/* Date Header */}
+                <div className="mb-3">
+                  <h3 className="text-xs font-semibold text-[#737373] dark:text-[#999999] uppercase tracking-wide">
+                    {group.dateLabel}
+                  </h3>
+                </div>
+
+                {/* Transactions for this date */}
+                <div className="flex flex-col gap-2">
+                  {group.transactions.map((txn) => (
+                    <div
+                      key={txn.id}
+                      className="flex items-center gap-3 py-3 px-3 bg-[#f5f5f5] dark:bg-[#0d2b4a] rounded-lg border border-[#e5e5e5] dark:border-[#0d2b4a]"
+                    >
+                      {/* Emoji Category Icon */}
+                      <div className="w-9 h-9 rounded-full bg-white dark:bg-[#1a1a1a] flex items-center justify-center text-lg shadow-sm border border-[#e5e5e5] dark:border-[#1e3a5f]">
+                        {getCategoryIcon(txn.category)}
+                      </div>
+
+                      {/* Transaction Details */}
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium text-[#1a1a1a] dark:text-[#f5f5f5] truncate">
+                          {txn.title}
+                        </p>
+                        <p className="text-xs text-[#737373] dark:text-[#999999]">
+                          {txn.category} • {txn.account}
+                        </p>
+                      </div>
+
+                      {/* Amount & Delete */}
+                      <div className="flex items-center gap-3">
+                        <div
+                          className="text-sm font-semibold whitespace-nowrap"
+                          style={{ color: txn.type === 'income' ? '#10b981' : '#ef4444' }}
+                        >
+                          {txn.type === 'income' ? '+' : '-'}{formatRupiah(txn.amount)}
+                        </div>
+
+                        <button
+                          onClick={() => handleDeleteTransaction(txn.id)}
+                          className="text-[#737373] hover:text-red-500 p-1 transition-colors"
+                          aria-label="Delete transaction"
+                        >
+                          <Trash2 size={16} />
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </section>
+
+      <BottomNav active="history" />
     </main>
   )
 }
