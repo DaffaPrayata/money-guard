@@ -36,7 +36,7 @@ Jika kamu ingin mencoba dan mengedit project ini di komputer lokal:
 
 ### 1. Clone Repositori
 ```bash
-git clone [https://github.com/USERNAME_KAMU/money-guard.git](https://github.com/USERNAME_KAMU/money-guard.git)
+git clone [https://github.com/DaffaPrayata/money-guard.git](https://github.com/DaffaPrayata/money-guard.git)
 cd money-guard
 
 ```
@@ -82,8 +82,3 @@ Project ini dibuat untuk keperluan pembelajaran dan portofolio pribadi.
 
 ---
 
-> 💡 **Tips Tambahan:**
-> * Ganti `USERNAME_KAMU` pada bagian `git clone` dengan nama username GitHub milikmu.
-> * Kalau nanti aplikasi kamu sudah ter-deploy ke Vercel, kamu bisa tambahkan link web resmimu di bagian paling atas README!
-> 
->
