@@ -14,7 +14,10 @@ const withPWA = withPWAInit({
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  // Konfigurasi Next.js kamu yang lain di sini
+  // 💡 Mengizinkan konfig webpack bawaan PWA agar tidak error di Next.js 16 (Turbopack)
+  experimental: {
+    turbopack: {},
+  },
 };
 
 export default withPWA(nextConfig);
